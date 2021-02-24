@@ -66,6 +66,10 @@ class ServiceMailClient:
             msg.as_string()
         )
 
+def print_log(msg: str) -> None:
+    now = datetime.datetime.now()
+    out = '[{ts:s}]\t{msg:s}'
+    print(out.format(ts=now.strftime('%Y-%m-%d %H:%M:%S'),msg=msg.replace('\n',' ')))
 
 def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
     _ws = sh.get_worksheet(worksheet_index)
@@ -110,34 +114,35 @@ if __name__ == '__main__':
         )
     )
 
-    for _, ride in df_routes.iterrows():
-        date_text = ride['Column text (automatic)'].split(': ')[0]
-        p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
-        ride_participants = df_participants[p_filter]        
-        mail_text_middle = ''
-        for rider_name in ride_participants['Full name']: 
-            mail_text_middle += '* ' + rider_name + '\n'
+    if not df_routes.empty:
+        for _, ride in df_routes.iterrows():
+            date_text = ride['Column text (automatic)'].split(': ')[0]
+            p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
+            ride_participants = df_participants[p_filter]        
+            mail_text_middle = ''
+            for rider_name in ride_participants['Full name']: 
+                mail_text_middle += '* ' + rider_name + '\n'
 
-        full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
-        
-        if 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800:
-            client = ServiceMailClient()
-            client.send_message(
-                ['zurich.rides@gmail.com'],
-                ride['Column text (automatic)'],
-                full_text,
-                bcc=list(ride_participants['Email Address']),
-            )
-            del client
-        # elif any(dt_now - ride_participants['Timestamp'].apply(lambda x: x.timestamp()) < 300) and (1500 > ride['Time stamps'].timestamp() - dt_now):
-        #     client = ServiceMailClient()
-        #     client.send_message(
-        #         ['zurich.rides@gmail.com'],
-        #         'Update for ride: ' + ride['Column text (automatic)'],
-        #         full_text,
-        #         # TODO bcc=list(ride_participants['Email address']),
-        #     )
-        #     del client
-        # else:
-        #     pass
-            # print('No mail send for ', ride['Column text (automatic)'])
+            full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
+            
+            if 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800:
+                client = ServiceMailClient()
+                client.send_message(
+                    ['zurich.rides@gmail.com'],
+                    ride['Column text (automatic)'],
+                    full_text,
+                    bcc=list(ride_participants['Email Address']),
+                )
+                del client
+                print_log(str(len(list(ride_participants['Email Address']))) + ' mails sent for ' + ride['Column text (automatic)'])
+            # elif any(dt_now - ride_participants['Timestamp'].apply(lambda x: x.timestamp()) < 300) and (1500 > ride['Time stamps'].timestamp() - dt_now):
+            #     client = ServiceMailClient()
+            #     client.send_message(
+            #         ['zurich.rides@gmail.com'],
+            #         'Update for ride: ' + ride['Column text (automatic)'],
+            #         full_text,
+            #         # TODO bcc=list(ride_participants['Email address']),
+            #     )
+            #     del client
+            else:
+                print_log('No mail sent for ' + ride['Column text (automatic)'])
