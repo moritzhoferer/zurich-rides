@@ -1,4 +1,6 @@
-# zurich-rides
+# Zurich rides 🚴
+
+The script runs every five minute by a cronjob (*/5 * * * *).
 
 ## Example for config.py file
 
