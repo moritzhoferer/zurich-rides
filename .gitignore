@@ -1,0 +1,10 @@
+# Folder
+__pycache__
+.vscode
+old/
+tests/
+
+
+# Files: Credentials and configuration
+service_account.json
+config.py
