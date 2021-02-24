@@ -135,14 +135,5 @@ if __name__ == '__main__':
                     )
                 del client
                 print_log(str(len(list(ride_participants['Email Address']))) + ' mails sent for ' + ride['Column text (automatic)'])
-            # elif any(dt_now - ride_participants['Timestamp'].apply(lambda x: x.timestamp()) < 300) and (1500 > ride['Time stamps'].timestamp() - dt_now):
-            #     client = ServiceMailClient()
-            #     client.send_message(
-            #         ['zurich.rides@gmail.com'],
-            #         'Update for ride: ' + ride['Column text (automatic)'],
-            #         full_text,
-            #         # TODO bcc=list(ride_participants['Email address']),
-            #     )
-            #     del client
             else:
                 print_log('No mail sent for ' + ride['Column text (automatic)'])
