@@ -127,12 +127,12 @@ if __name__ == '__main__':
             
             if 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800:
                 client = ServiceMailClient()
-                client.send_message(
-                    ['zurich.rides@gmail.com'],
-                    ride['Column text (automatic)'],
-                    full_text,
-                    bcc=list(ride_participants['Email Address']),
-                )
+                for em_address in list(ride_participants['Email Address']):
+                    client.send_message(
+                        [em_address],
+                        ride['Column text (automatic)'],
+                        full_text,
+                    )
                 del client
                 print_log(str(len(list(ride_participants['Email Address']))) + ' mails sent for ' + ride['Column text (automatic)'])
             # elif any(dt_now - ride_participants['Timestamp'].apply(lambda x: x.timestamp()) < 300) and (1500 > ride['Time stamps'].timestamp() - dt_now):
