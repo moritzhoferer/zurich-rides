@@ -80,7 +80,7 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
 
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
-    
+
     gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
     sh = gc.open_by_key(config.ID_SPREADSHEET)
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         )
     )
     df_routes = df_routes[df_routes['Time stamps'].apply(lambda x: x.timestamp()) > datetime.datetime.now().timestamp()] 
-    
+
     df_participants = get_df(sh, 0)
     df_participants['Timestamp'] = df_participants['Timestamp'].apply(
         lambda x: timezone_zurich.localize(
@@ -120,13 +120,13 @@ if __name__ == '__main__':
 
         full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
         
-        if 1500 < ride['Time stamps'].timestamp() - dt_now < 1800:
+        if 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800:
             client = ServiceMailClient()
             client.send_message(
                 ['zurich.rides@gmail.com'],
                 ride['Column text (automatic)'],
                 full_text,
-                # TODO bcc=list(ride_participants['Email address']),
+                bcc=list(ride_participants['Email Address']),
             )
             del client
         # elif any(dt_now - ride_participants['Timestamp'].apply(lambda x: x.timestamp()) < 300) and (1500 > ride['Time stamps'].timestamp() - dt_now):
@@ -138,5 +138,6 @@ if __name__ == '__main__':
         #         # TODO bcc=list(ride_participants['Email address']),
         #     )
         #     del client
-        else:
-            print('No mail send for ', ride['Column text (automatic)'])
+        # else:
+        #     pass
+            # print('No mail send for ', ride['Column text (automatic)'])
