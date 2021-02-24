@@ -136,4 +136,5 @@ if __name__ == '__main__':
                 del client
                 print_log(str(len(list(ride_participants['Email Address']))) + ' mails sent for ' + ride['Column text (automatic)'])
             else:
-                print_log('No mail sent for ' + ride['Column text (automatic)'])
+                pass
+                # print_log('No mail sent for ' + ride['Column text (automatic)'])
