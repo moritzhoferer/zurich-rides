@@ -99,33 +99,34 @@ if __name__ == '__main__':
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
         )
     )
-
     df_routes['Time stamps'] = df_routes['Time stamps'].apply(
         lambda x: timezone_zurich.localize(
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
         )
     )
-    df_routes = df_routes[df_routes['Time stamps'].apply(lambda x: x.timestamp()) > datetime.datetime.now().timestamp()] 
-
-    df_participants = get_df(sh, 0)
-    df_participants['Timestamp'] = df_participants['Timestamp'].apply(
-        lambda x: timezone_zurich.localize(
-            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
-        )
-    )
+    df_routes = df_routes[df_routes['Time stamps'].apply(lambda x: x.timestamp()) > dt_now] 
 
     if not df_routes.empty:
-        for _, ride in df_routes.iterrows():
-            date_text = ride['Column text (automatic)'].split(': ')[0]
-            p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
-            ride_participants = df_participants[p_filter]        
-            mail_text_middle = ''
-            for rider_name in ride_participants['Full name']: 
-                mail_text_middle += '* ' + rider_name + '\n'
+        df_participants = get_df(sh, 0)
+        df_participants['Timestamp'] = df_participants['Timestamp'].apply(
+            lambda x: timezone_zurich.localize(
+                datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
+            )
+        )
 
-            full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
-            
-            if 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800:
+        for _, ride in df_routes.iterrows():
+            p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
+            send_now = 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800
+            if any(p_filter) and send_now:
+                date_text = ride['Column text (automatic)'].split(': ')[0]
+                
+                ride_participants = df_participants[p_filter]        
+                mail_text_middle = ''
+                for rider_name in ride_participants['Full name']: 
+                    mail_text_middle += '* ' + rider_name + '\n'
+
+                full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
+                
                 client = ServiceMailClient()
                 for em_address in list(ride_participants['Email Address']):
                     client.send_message(
