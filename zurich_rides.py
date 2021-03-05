@@ -85,10 +85,11 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
 
+    # Connect to the relevant Google spreadsheat
     gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
     sh = gc.open_by_key(config.ID_SPREADSHEET)
 
-    # Load and format data frames
+    # Load and format data of routes
     df_routes = pd.concat(
         [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps']]],
         axis=1,
@@ -107,6 +108,7 @@ if __name__ == '__main__':
     df_routes = df_routes[df_routes['Time stamps'].apply(lambda x: x.timestamp()) > dt_now] 
 
     if not df_routes.empty:
+        # Load and format dataframe of participants
         df_participants = get_df(sh, 0)
         df_participants['Timestamp'] = df_participants['Timestamp'].apply(
             lambda x: timezone_zurich.localize(
@@ -115,18 +117,20 @@ if __name__ == '__main__':
         )
 
         for _, ride in df_routes.iterrows():
+            # Does anybody participate?
             p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
+            # Does the ride start in the next 25 to 30 minutes?
             send_now = 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800
             if any(p_filter) and send_now:
+                # Finalize the message
                 date_text = ride['Column text (automatic)'].split(': ')[0]
-                
                 ride_participants = df_participants[p_filter]        
                 mail_text_middle = ''
                 for rider_name in ride_participants['Full name']: 
                     mail_text_middle += '* ' + rider_name + '\n'
-
                 full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
                 
+                # Send messages to participants
                 client = ServiceMailClient()
                 for em_address in list(ride_participants['Email Address']):
                     client.send_message(
@@ -135,7 +139,8 @@ if __name__ == '__main__':
                         full_text,
                     )
                 del client
-                print_log(str(len(list(ride_participants['Email Address']))) + ' mails sent for ' + ride['Column text (automatic)'])
-            else:
-                pass
-                # print_log('No mail sent for ' + ride['Column text (automatic)'])
+
+                # Write action to log file
+                print_log(
+                    str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
+                )
