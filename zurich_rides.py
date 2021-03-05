@@ -105,7 +105,9 @@ if __name__ == '__main__':
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
         )
     )
-    df_routes = df_routes[df_routes['Time stamps'].apply(lambda x: x.timestamp()) > dt_now] 
+    # r_filter = df_routes['Time stamps'].apply(lambda x: x.timestamp()) > dt_now
+    r_filter = [1500 < x.timestamp() - dt_now <= 1800 for x in df_routes['Time stamps']]
+    df_routes = df_routes[r_filter] 
 
     if not df_routes.empty:
         # Load and format dataframe of participants
@@ -120,8 +122,8 @@ if __name__ == '__main__':
             # Does anybody participate?
             p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
             # Does the ride start in the next 25 to 30 minutes?
-            send_now = 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800
-            if any(p_filter) and send_now:
+            # send_now = 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800
+            if any(p_filter): # and send_now:
                 # Finalize the message
                 date_text = ride['Column text (automatic)'].split(': ')[0]
                 ride_participants = df_participants[p_filter]        
