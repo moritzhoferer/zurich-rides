@@ -18,8 +18,11 @@ timezone_zurich = pytz.timezone('Europe/Zurich')
 
 mail_text_begin = "Hi\n\nFor the ride on {date:s} from {location:s} you ride with:\n"
 mail_text_end = "\nWe look forward to riding with you.\n\nBest,\nHead wind\n\nP.S.: If you have any syntoms after the ride, please respond to this message."
-
 mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride on {date:s} from {location:s} you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
+
+# Connect to the relevant Google spreadsheat
+gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
+sh = gc.open_by_key(config.ID_SPREADSHEET)
 
 class ServiceMailClient:
     def __init__(self):
@@ -86,6 +89,35 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
     return _df
 
 
+def get_routes():
+    _df = pd.concat(
+        [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps']]],
+        axis=1,
+        join='inner',
+    ) 
+    _df['Timestamp'] = _df['Timestamp'].apply(
+        lambda x: timezone_zurich.localize(
+            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
+        )
+    )
+    _df['Time stamps'] = _df['Time stamps'].apply(
+        lambda x: timezone_zurich.localize(
+            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
+        )
+    )
+    return _df
+
+
+def get_participants():
+    _df = get_df(sh, 0)
+    _df['Timestamp'] = _df['Timestamp'].apply(
+        lambda x: timezone_zurich.localize(
+            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
+        )
+    )
+    return _df
+
+
 def get_prev_dt() -> float:
     if os.path.exists(config.PREV_DT_PATH):
         with open(config.PREV_DT_PATH, 'r') as f: 
@@ -93,51 +125,30 @@ def get_prev_dt() -> float:
     else:
         # Five minutes ago as default
         _out = datetime.datetime.now().timestamp() - (5 * 60)
-    return(_out)
+    return _out
 
 
 def save_dt(dt_timestamp: float()) -> None:
     with open(config.PREV_DT_PATH, 'w') as f: 
         f.write(str(dt_timestamp))
 
+# # TODO
+# def main():
+#     pass
 
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
     dt_prev = get_prev_dt()
     
-    # Connect to the relevant Google spreadsheat
-    gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
-    sh = gc.open_by_key(config.ID_SPREADSHEET)
-
     # Load and format data of routes
-    df_routes = pd.concat(
-        [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps']]],
-        axis=1,
-        join='inner',
-    ) 
-    df_routes['Timestamp'] = df_routes['Timestamp'].apply(
-        lambda x: timezone_zurich.localize(
-            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
-        )
-    )
-    df_routes['Time stamps'] = df_routes['Time stamps'].apply(
-        lambda x: timezone_zurich.localize(
-            datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
-        )
-    )
-    
+    df_routes = get_routes()
     # Does the ride start in the next ~30 minutes?
     r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
     df_routes = df_routes[r_filter] 
 
     if not df_routes.empty:
         # Load and format dataframe of participants
-        df_participants = get_df(sh, 0)
-        df_participants['Timestamp'] = df_participants['Timestamp'].apply(
-            lambda x: timezone_zurich.localize(
-                datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
-            )
-        )
+        df_participants = get_participants()
 
         for _, ride in df_routes.iterrows():
             # Does anybody participate?
