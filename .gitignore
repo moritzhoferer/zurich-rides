@@ -5,7 +5,9 @@ __pycache__
 old/
 tests/
 
-
 # Files: Credentials and configuration
 service_account.json
 config.py
+
+# Keep this local
+prev_dt.txt

@@ -3,6 +3,7 @@
 # Authentication: https://gspread.readthedocs.io/en/latest/oauth2.html#enable-api-access
 # Get worksheet: https://gspread.readthedocs.io/en/latest/user-guide.html#opening-a-spreadsheet
 
+import os
 import datetime
 import pytz
 import gspread
@@ -18,6 +19,7 @@ timezone_zurich = pytz.timezone('Europe/Zurich')
 mail_text_begin = "Hi\n\nFor the ride on {date:s} from {location:s} you ride with:\n"
 mail_text_end = "\nWe look forward to riding with you.\n\nBest,\nHead wind\n\nP.S.: If you have any syntoms after the ride, please respond to this message."
 
+mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride on {date:s} from {location:s} you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
 
 class ServiceMailClient:
     def __init__(self):
@@ -66,10 +68,12 @@ class ServiceMailClient:
             msg.as_string()
         )
 
+
 def print_log(msg: str) -> None:
     now = datetime.datetime.now()
     out = '[{ts:s}]\t{msg:s}'
     print(out.format(ts=now.strftime('%Y-%m-%d %H:%M:%S'),msg=msg.replace('\n',' ')))
+
 
 def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
     _ws = sh.get_worksheet(worksheet_index)
@@ -82,9 +86,25 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
     return _df
 
 
+def get_prev_dt() -> float:
+    if os.path.exists(config.PREV_DT_PATH):
+        with open(config.PREV_DT_PATH, 'r') as f: 
+            _out = float(f.read())
+    else:
+        # Five minutes ago as default
+        _out = datetime.datetime.now().timestamp() - (5 * 60)
+    return(_out)
+
+
+def save_dt(dt_timestamp: float()) -> None:
+    with open(config.PREV_DT_PATH, 'w') as f: 
+        f.write(str(dt_timestamp))
+
+
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
-
+    dt_prev = get_prev_dt()
+    
     # Connect to the relevant Google spreadsheat
     gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
     sh = gc.open_by_key(config.ID_SPREADSHEET)
@@ -105,8 +125,9 @@ if __name__ == '__main__':
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
         )
     )
-    # r_filter = df_routes['Time stamps'].apply(lambda x: x.timestamp()) > dt_now
-    r_filter = [1500 < x.timestamp() - dt_now <= 1800 for x in df_routes['Time stamps']]
+    
+    # Does the ride start in the next ~30 minutes?
+    r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
     df_routes = df_routes[r_filter] 
 
     if not df_routes.empty:
@@ -121,18 +142,20 @@ if __name__ == '__main__':
         for _, ride in df_routes.iterrows():
             # Does anybody participate?
             p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
-            # Does the ride start in the next 25 to 30 minutes?
-            # send_now = 1500 < ride['Time stamps'].timestamp() - dt_now <= 1800
-            if any(p_filter): # and send_now:
+
+            if any(p_filter):
                 # Finalize the message
                 date_text = ride['Column text (automatic)'].split(': ')[0]
-                ride_participants = df_participants[p_filter]        
-                mail_text_middle = ''
-                for rider_name in ride_participants['Full name']: 
-                    mail_text_middle += '* ' + rider_name + '\n'
-                full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
+                ride_participants = df_participants[p_filter]
+                if len(ride_participants) > 1:      
+                    mail_text_middle = ''
+                    for rider_name in ride_participants['Full name']: 
+                        mail_text_middle += '* ' + rider_name + '\n'
+                    full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
+                else:
+                    full_text = mail_text_one_rider.format(date=date_text, location=ride['Meeting point']) 
                 
-                # Send messages to participants
+                # Send messages to participant(s)
                 client = ServiceMailClient()
                 for em_address in list(ride_participants['Email Address']):
                     client.send_message(
@@ -146,3 +169,6 @@ if __name__ == '__main__':
                 print_log(
                     str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
                 )
+
+    # Save the time stamp where the script started
+    save_dt(dt_now)
