@@ -176,6 +176,13 @@ if __name__ == '__main__':
                     )
                 del client
 
+                # Save entries into backup
+                BACKUP_PATH = config.PROJECT_DIR + '/backup.csv'
+                if os.path.exists(BACKUP_PATH):
+                    ride_participants.to_csv(BACKUP_PATH, index=False, mode='a+', header=False)
+                else:
+                    ride_participants.to_csv(BACKUP_PATH, index=False, mode='w+', header=True)
+
                 # Write action to log file
                 print_log(
                     str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
