@@ -139,7 +139,7 @@ def save_dt(dt_timestamp: float()) -> None:
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
     dt_prev = get_prev_dt()
-    
+
     # Load and format data of routes
     df_routes = get_routes()
     # Does the ride start in the next ~30 minutes?
@@ -168,7 +168,7 @@ if __name__ == '__main__':
                 
                 # Send messages to participant(s)
                 client = ServiceMailClient()
-                for em_address in list(ride_participants['Email Address']):
+                for em_address in list(ride_participants['Email']):
                     client.send_message(
                         [em_address],
                         ride['Column text (automatic)'],
