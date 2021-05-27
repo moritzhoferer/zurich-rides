@@ -168,7 +168,7 @@ if __name__ == '__main__':
                 
                 # Send messages to participant(s)
                 client = ServiceMailClient()
-                for em_address in list(ride_participants['Email']):
+                for em_address in list(ride_participants['Email Address']):
                     client.send_message(
                         [em_address],
                         ride['Column text (automatic)'],
