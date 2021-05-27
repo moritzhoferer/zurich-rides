@@ -166,9 +166,15 @@ if __name__ == '__main__':
                 else:
                     full_text = mail_text_one_rider.format(date=date_text, location=ride['Meeting point']) 
                 
+                # Check for the right column name of the email addresses
+                try:
+                    recipients = list(ride_participants['Email Address'])
+                except KeyError:
+                    recipients = list(ride_participants['Email'])
+                
                 # Send messages to participant(s)
                 client = ServiceMailClient()
-                for em_address in list(ride_participants['Email Address']):
+                for em_address in recipients:
                     client.send_message(
                         [em_address],
                         ride['Column text (automatic)'],
