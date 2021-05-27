@@ -144,13 +144,13 @@ if __name__ == '__main__':
     df_routes = get_routes()
     # Does the ride start in the next ~30 minutes?
     r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
-    df_routes = df_routes[r_filter] 
+    df_selected_routes = df_routes[r_filter] 
 
-    if not df_routes.empty:
+    if not df_selected_routes.empty:
         # Load and format dataframe of participants
         df_participants = get_participants()
 
-        for _, ride in df_routes.iterrows():
+        for _, ride in df_selected_routes.iterrows():
             # Does anybody participate?
             p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
 
