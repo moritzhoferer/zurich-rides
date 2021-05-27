@@ -142,6 +142,7 @@ if __name__ == '__main__':
 
     # Load and format data of routes
     df_routes = get_routes()
+    
     # Does the ride start in the next ~30 minutes?
     r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
     df_selected_routes = df_routes[r_filter] 
@@ -155,9 +156,10 @@ if __name__ == '__main__':
             p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
 
             if any(p_filter):
+                ride_participants = df_participants[p_filter]
+                
                 # Finalize the message
                 date_text = ride['Column text (automatic)'].split(': ')[0]
-                ride_participants = df_participants[p_filter]
                 if len(ride_participants) > 1:      
                     mail_text_middle = ''
                     for rider_name in ride_participants['Full name']: 
@@ -182,18 +184,31 @@ if __name__ == '__main__':
                     )
                 del client
 
+                # Write action to log file
+                print_log(
+                    str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
+                )
+
+    # BACK UP OF PARTICIPANTS LIST
+    r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
+    df_selected_routes = df_routes[r_filter] 
+
+    if not df_selected_routes.empty:
+        # Load and format dataframe of participants
+        df_participants = get_participants()
+
+        for _, ride in df_selected_routes.iterrows():
+            # Does anybody participate?
+            p_filter = [ride['Column text (automatic)'] in x for x in df_participants['Ride']]
+
+            if any(p_filter):
+                ride_participants = df_participants[p_filter]
                 # Save entries into backup
                 BACKUP_PATH = config.PROJECT_DIR + '/backup.csv'
                 if os.path.exists(BACKUP_PATH):
                     ride_participants.to_csv(BACKUP_PATH, index=False, mode='a+', header=False)
                 else:
                     ride_participants.to_csv(BACKUP_PATH, index=False, mode='w+', header=True)
-
-                # Write action to log file
-                print_log(
-                    str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
-                )
-
+                
     # Save the time stamp where the script started
     save_dt(dt_now)
-
