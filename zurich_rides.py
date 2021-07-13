@@ -91,7 +91,7 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
 
 def get_routes():
     _df = pd.concat(
-        [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps']]],
+        [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps', 'Canceled']]],
         axis=1,
         join='inner',
     ) 
@@ -145,7 +145,10 @@ if __name__ == '__main__':
     
     # Does the ride start in the next ~30 minutes?
     r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
-    df_selected_routes = df_routes[r_filter] 
+    # Is the ride not canceled?
+    c_filter = df_routes['Canceled']=='FALSE'
+    # Apply filters
+    df_selected_routes = df_routes[(r_filter) & (c_filter)] 
 
     if not df_selected_routes.empty:
         # Load and format dataframe of participants
