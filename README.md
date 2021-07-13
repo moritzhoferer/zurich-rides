@@ -1,4 +1,4 @@
-# Zurich rides 🚴
+# ZüRides 🚴
 
 The script runs every five minute by a cronjob (*/5 * * * *).
 
