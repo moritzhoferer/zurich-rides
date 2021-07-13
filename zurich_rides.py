@@ -105,6 +105,7 @@ def get_routes():
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
         )
     )
+    _df['Canceled'] = _df['Canceled'].apply(lambda x: x=='TRUE')
     return _df
 
 
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     # Does the ride start in the next ~30 minutes?
     r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
     # Is the ride not canceled?
-    c_filter = df_routes['Canceled']=='FALSE'
+    c_filter = list(~df_routes['Canceled'])
     # Apply filters
     df_selected_routes = df_routes[(r_filter) & (c_filter)] 
 
