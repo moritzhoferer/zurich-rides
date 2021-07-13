@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     # BACK UP OF PARTICIPANTS LIST
     r_filter = [dt_prev < x.timestamp() <= dt_now for x in df_routes['Time stamps']]
-    df_selected_routes = df_routes[r_filter] 
+    df_selected_routes = df_routes[(r_filter) & (c_filter)] 
 
     if not df_selected_routes.empty:
         # Load and format dataframe of participants
