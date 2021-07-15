@@ -7,6 +7,7 @@ import os
 import datetime
 import pytz
 import gspread
+import numpy as np
 import pandas as pd
 
 from smtplib import SMTP_SSL as SMTP 
@@ -143,11 +144,11 @@ if __name__ == '__main__':
 
     # Load and format data of routes
     df_routes = get_routes()
-    
+
     # Does the ride start in the next ~30 minutes?
-    r_filter = [dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']]
+    r_filter = np.array([dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']])
     # Is the ride not canceled?
-    c_filter = list(~df_routes['Canceled'])
+    c_filter = ~df_routes['Canceled'].values
     # Apply filters
     df_selected_routes = df_routes[(r_filter) & (c_filter)] 
 
@@ -194,7 +195,7 @@ if __name__ == '__main__':
                 )
 
     # BACK UP OF PARTICIPANTS LIST
-    r_filter = [dt_prev < x.timestamp() <= dt_now for x in df_routes['Time stamps']]
+    r_filter = np.array([dt_prev < x.timestamp() <= dt_now for x in df_routes['Time stamps']])
     df_selected_routes = df_routes[(r_filter) & (c_filter)] 
 
     if not df_selected_routes.empty:
