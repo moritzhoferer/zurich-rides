@@ -17,6 +17,8 @@ import config
 
 timezone_zurich = pytz.timezone('Europe/Zurich')
 
+reply_to_email = 'zuerides@googlegroups.com'
+
 mail_text_begin = "Hi\n\nFor the ride on {date:s} from {location:s} you ride with:\n"
 mail_text_end = "\nWe look forward to riding with you.\n\nBest,\nHead wind\n\nP.S.: If you have any symptoms after the ride, please respond to this message."
 mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride on {date:s} from {location:s} you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
@@ -65,6 +67,8 @@ class ServiceMailClient:
             msg['CC'] = ','.join(cc)
         if bcc:
             msg['BCC'] = ','.join(bcc)
+
+        msg.add_header('reply-to', reply_to_email)
         
         self.conn.sendmail(
             config.sender_username, 
