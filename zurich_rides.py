@@ -19,9 +19,14 @@ timezone_zurich = pytz.timezone('Europe/Zurich')
 
 reply_to_email = 'zuerides@googlegroups.com'
 
-mail_text_begin = "Hi\n\nFor the ride on {date:s} from {location:s} you ride with:\n"
-mail_text_end = "\nWe look forward to riding with you.\n\nBest,\nHead wind\n\nP.S.: If you have any symptoms after the ride, please respond to this message."
-mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride on {date:s} from {location:s} you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
+mail_text_begin = "Hi\n\nFor the ride {location:s} on {date:s}, you ride with:\n"
+
+mail_text_end = "({count:d} participants)\n\nWe look forward to riding with you.\n\n"\
+    "Best,\nHead wind\n\n"\
+    "P.S.: If you have any symptoms after the ride, please respond to this message."
+
+mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride {location:s} on {date:s}, "\
+    "you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
 
 # Connect to the relevant Google spreadsheat
 gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
@@ -150,7 +155,10 @@ if __name__ == '__main__':
     df_routes = get_routes()
 
     # Does the ride start in the next ~30 minutes?
-    r_filter = np.array([dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now for x in df_routes['Time stamps']])
+    r_filter = np.array([
+        dt_prev < x.timestamp() - config.TIME_BEFORE_RIDE <= dt_now 
+        for x in df_routes['Time stamps']
+    ])
     # Is the ride not canceled?
     c_filter = ~df_routes['Canceled'].values
     # Apply filters
@@ -170,10 +178,12 @@ if __name__ == '__main__':
                 # Finalize the message
                 date_text = ride['Column text (automatic)'].split(': ')[0]
                 if len(ride_participants) > 1:      
+                    total_count = len(ride_participants['Full name'])
                     mail_text_middle = ''
                     for rider_name in ride_participants['Full name']: 
                         mail_text_middle += '* ' + rider_name + '\n'
-                    full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + mail_text_middle + mail_text_end
+                    full_text = mail_text_begin.format(date=date_text, location=ride['Meeting point']) + \
+                        mail_text_middle + mail_text_end.format(count=total_count)
                 else:
                     full_text = mail_text_one_rider.format(date=date_text, location=ride['Meeting point']) 
                 
