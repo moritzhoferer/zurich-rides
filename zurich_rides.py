@@ -129,18 +129,28 @@ def get_participants():
     return _df
 
 
-def get_prev_dt() -> float:
-    if os.path.exists(config.PREV_DT_PATH):
-        with open(config.PREV_DT_PATH, 'r') as f: 
+def load_dt(path, if_missing=0.) -> float:
+    if os.path.exists(path):
+        with open(path, 'r') as f: 
             _out = float(f.read())
     else:
-        # Five minutes ago as default
-        _out = datetime.datetime.now().timestamp() - (5 * 60)
+        _out = if_missing
     return _out
 
 
-def save_dt(dt_timestamp: float()) -> None:
-    with open(config.PREV_DT_PATH, 'w') as f: 
+# TODO Remove
+# def get_prev_dt() -> float:
+#     if os.path.exists(config.PREV_DT_PATH):
+#         with open(config.PREV_DT_PATH, 'r') as f: 
+#             _out = float(f.read())
+#     else:
+#         # Five minutes ago as default
+#         _out = datetime.datetime.now().timestamp() - (5 * 60)
+#     return _out
+
+
+def save_dt(dt_timestamp: float, path: str) -> None:
+    with open(path, 'w') as f: 
         f.write(str(dt_timestamp))
 
 # # TODO
@@ -149,7 +159,9 @@ def save_dt(dt_timestamp: float()) -> None:
 
 if __name__ == '__main__':
     dt_now = datetime.datetime.now().timestamp()
-    dt_prev = get_prev_dt()
+    # Five minutes ago as default
+    dt_prev = load_dt(config.PREV_DT_PATH, datetime.datetime.now().timestamp() - (5 * 60))
+    # dt_prev = get_prev_dt()
 
     # Load and format data of routes
     df_routes = get_routes()
@@ -208,6 +220,16 @@ if __name__ == '__main__':
                     str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
                 )
 
+                # Save timestamp of the last mail sent
+                save_dt(dt_now, config.LAST_MAIL_SENT)
+    
+    # If the last mail was sent more than 30 days ago
+    elif dt_now - load_dt(config.LAST_MAIL_SENT) > 2592000:
+        client = ServiceMailClient()
+        client.send_message([config.sender_username], 'spam', 'spam')
+        del client
+        save_dt(dt_now, config.LAST_MAIL_SENT)
+
     # BACK UP OF PARTICIPANTS LIST
     r_filter = np.array([dt_prev < x.timestamp() <= dt_now for x in df_routes['Time stamps']])
     df_selected_routes = df_routes[(r_filter) & (c_filter)] 
@@ -230,4 +252,4 @@ if __name__ == '__main__':
                     ride_participants.to_csv(BACKUP_PATH, index=False, mode='w+', header=True)
                 
     # Save the time stamp where the script started
-    save_dt(dt_now)
+    save_dt(dt_now, config.PREV_DT_PATH)
