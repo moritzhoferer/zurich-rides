@@ -34,7 +34,7 @@ sh = gc.open_by_key(config.ID_SPREADSHEET)
 
 class ServiceMailClient:
     def __init__(self):
-        self.conn = SMTP(config.smtp_server)
+        self.conn = SMTP(config.smtp_server, 465)
         self.conn.set_debuglevel(False)
         self.conn.login(
             config.sender_username,
@@ -66,14 +66,14 @@ class ServiceMailClient:
         else:
             msg['Subject'] = 'No subject'
             
-        msg['From'] = config.sender_displayname
+        msg['From'] = f'{config.sender_displayname} <{config.sender_username}>'
         msg['To'] = ','.join(to)
         if cc:
             msg['CC'] = ','.join(cc)
         if bcc:
             msg['BCC'] = ','.join(bcc)
 
-        msg.add_header('reply-to', reply_to_email)
+        msg.add_header('Reply-to', reply_to_email)
         
         self.conn.sendmail(
             config.sender_username, 
