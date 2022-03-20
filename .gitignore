@@ -6,10 +6,11 @@ old/
 tests/
 
 # Files: Credentials and configuration
-service_account.json
+*.json
 config.py
 
 # Keep this local
 *.txt
 *.log
+test_*
 backup.csv
