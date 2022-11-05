@@ -28,6 +28,11 @@ mail_text_end = "({count:d} participants)\n\nWe look forward to riding with you.
 mail_text_one_rider = "Hi\n\nNow you have to be strong. For the ride {location:s} on {date:s}, "\
     "you unfortunately ride alone. I'm sorry!\n\nBest,\nTooth fairy <3"
 
+# TODO RIDES DATAFRAME LABELS
+START_TIMESTAMP_LABEL = 'Time stamps'
+MEETING_POINT_LABEL = 'Meeting point'
+RIDE_TITLE_LABEL = 'Ride title'
+
 # Connect to the relevant Google spreadsheat
 gc = gspread.service_account(filename=config.CREDENTIAL_PATH)
 sh = gc.open_by_key(config.ID_SPREADSHEET)
@@ -98,10 +103,19 @@ def get_df(sh: gspread.models.Spreadsheet, worksheet_index: int, header=True):
         _df = pd.DataFrame(_data)
     return _df
 
+def get_df_by_name(sh: gspread.models.Spreadsheet, name: str):
+    return pd.DataFrame.from_records(
+        sh.worksheet(name).get_all_records()
+    )
 
 def get_routes():
     _df = pd.concat(
-        [get_df(sh, 1), get_df(sh, 2)[['Column text (automatic)', 'Time stamps', 'Canceled']]],
+        [
+            get_df_by_name(sh, 'Submission'),
+            get_df_by_name(sh, 'Rides')[['Column text (automatic)', 'Time stamps', 'Canceled']],
+            # get_df(sh, 1), 
+            # get_df(sh, 2)[['Column text (automatic)', 'Time stamps', 'Canceled']],
+        ],
         axis=1,
         join='inner',
     ) 
@@ -120,7 +134,8 @@ def get_routes():
 
 
 def get_participants():
-    _df = get_df(sh, 0)
+    # _df = get_df(sh, 0)
+    _df = get_df_by_name(sh, 'Registration')
     _df['Timestamp'] = _df['Timestamp'].apply(
         lambda x: timezone_zurich.localize(
             datetime.datetime.strptime(x, '%m/%d/%Y %H:%M:%S')
@@ -207,17 +222,24 @@ if __name__ == '__main__':
                 
                 # Send messages to participant(s)
                 client = ServiceMailClient()
+                counter = 0
                 for em_address in recipients:
-                    client.send_message(
-                        [em_address],
-                        ride['Column text (automatic)'],
-                        full_text,
-                    )
+                    try:
+                        client.send_message(
+                            [em_address],
+                            ride['Column text (automatic)'],
+                            full_text,
+                        )
+                        counter += 1
+                    except:
+                        print_log(
+                            f"Error occured for {em_address} at {ride['Column text (automatic)']}"
+                        )
                 del client
 
                 # Write action to log file
                 print_log(
-                    str(len(ride_participants)) + ' mails sent for ' + ride['Column text (automatic)']
+                    f"{counter}/{len(ride_participants)} mails sent for {ride['Column text (automatic)']}"
                 )
 
                 # Save timestamp of the last mail sent
