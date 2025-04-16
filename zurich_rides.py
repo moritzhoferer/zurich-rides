@@ -17,7 +17,7 @@ import config
 
 timezone_zurich = pytz.timezone('Europe/Zurich')
 
-reply_to_email = 'zuerides@googlegroups.com'
+reply_to_email = 'zuridescc@googlegroups.com'
 
 mail_text_begin = "Hi\n\nFor the ride {location:s} on {date:s}, you ride with:\n"
 
